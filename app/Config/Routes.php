@@ -34,6 +34,10 @@ $routes->setAutoRoute(true);
 $routes->get('/', 'Inicio::index');
 $routes->get('/inicio', 'Inicio::index');
 $routes->get('usuarios', 'Usuarios::index');
+$routes->get('detalle_usuario/(:num)', 'Usuarios::detalleUsuario/$1');
+$routes->match(['get', 'post'], 'usuarios/alta', 'Usuarios::crearUsuario');
+$routes->match(['get', 'post'], 'usuarios/editar/(:num)', 'Usuarios::crearUsuario/$1');
+$routes->get('usuarios/eliminar/(:num)', 'Usuarios::eliminar/$1');
 
 /*
  * --------------------------------------------------------------------

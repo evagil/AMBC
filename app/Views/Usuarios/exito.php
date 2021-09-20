@@ -1,0 +1,1 @@
+<?= esc($titulo)." usuario: ".esc($usuario)."," ?> tuvo exito
