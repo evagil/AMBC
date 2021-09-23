@@ -7,16 +7,53 @@ use CodeIgniter\Controller;
 
 class Usuarios extends Controller
 {
+
+    private $validacion = [
+        'nombre' => [
+            'rules' => 'required|min_length[3]|max_length[30]',
+            'errors' => [
+                'required' => 'El nombre es requerido.',
+                'min_length' => 'El nombre debe ser minimo de 3 letras.',
+                'max_length' => 'El nombre debe ser maximo de 30 letras.'
+            ]
+        ],
+        'apellido' => [
+            'rules' => 'required|min_length[3]|max_length[255]',
+            'errors' => [
+                'required' => 'El apellido es requerido.',
+                'min_length' => 'El apellido debe ser minimo de 3 letras.',
+                'max_length' => 'El apellido debe ser maximo de 255 letras.'
+            ]
+        ],
+        'usuario' => [
+            'rules' => 'required|min_length[3]|max_length[255]',
+            'errors' => [
+                'required' => 'El usuario es requerido.',
+                'min_length' => 'El usuario debe ser minimo de 3 letras.',
+                'max_length' => 'El usuario debe ser maximo de 255 letras.'
+            ]
+        ],
+        'email' => [
+            'rules' => 'required|valid_email',
+            'errors' => [
+                'required' => 'El email es requerido.',
+                'valid_email' => 'El email no tiene un formato valido.'
+            ]
+        ],
+        'rol'  => [
+            'rules' => 'required|numeric',
+            'errors' => [
+                'required' => 'El rol es requerido.',
+                'numeric' => 'El rol debe ser numerico.'
+            ]
+        ]
+    ];
+
     public function index() // Lista a todos los usuarios
     {
         $usuarios = new ModelUsuarios();
         $data['titulo'] = 'Usuarios';
         $data['usuarios'] = $usuarios->obtenerUsuarios();
-
-        if (empty($data['usuarios']))
-        {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('no se encontraron usuarios');
-        }
 
         echo view('templates/header', $data);
         echo view('templates/container');
@@ -41,22 +78,22 @@ class Usuarios extends Controller
         echo view('templates/footer');
     }
 
-    public function crearUsuario($id = false) // Alta o Edita un usuario
+    public function crearUsuario() // Alta de un usuario
     {
+        helper('form');
         $usuario = new ModelUsuarios();
+        $data['validacion'] = null;
 
-        if(!$id) { // Alta
-            $data['titulo'] = "Alta";
-            $data['usuario'] = $this->request->getPost('usuario');
-            $data['roles'] = $usuario->obtenerRoles();
+        $data['titulo'] = "Alta";
+        $data['usuario'] = $this->request->getPost('usuario');
+        $data['nombre'] = $this->request->getPost('nombre');
+        $data['apellido'] = $this->request->getPost('apellido');
+        $data['email'] = $this->request->getPost('email');
+        $data['rol'] = $this->request->getPost('rol');
+        $data['roles'] = $usuario->obtenerRoles();
 
-            if ($this->request->getMethod() === 'post' && $this->validate([
-                    'nombre' => 'required|min_length[3]|max_length[255]',
-                    'apellido'  => 'required|min_length[3]|max_length[255]',
-                    'usuario'  => 'required|min_length[3]|max_length[255]',
-                    'email'  => 'required',
-                    'rol'  => 'required|numeric'
-                ])) {
+        if ($this->request->getMethod() === 'post') {
+            if ($this->validate($this->validacion)) {
                 $usuario->save([
                     'nombre' => $this->request->getPost('nombre'),
                     'apellido'  => $this->request->getPost('apellido'),
@@ -69,31 +106,37 @@ class Usuarios extends Controller
                 echo view('templates/container');
                 echo view('Usuarios/exito', $data);
                 echo view('templates/footer');
+            }
+            else {
+                $data['validacion'] = $this->validator;
 
-            } else {
                 echo view('templates/header', $data);
                 echo view('templates/container');
                 echo view('Usuarios/alta', $data);
                 echo view('templates/footer');
             }
+        } else {
+            echo view('templates/header', $data);
+            echo view('templates/container');
+            echo view('Usuarios/alta', $data);
+            echo view('templates/footer');
         }
-        else { // Editar
-            $data['titulo'] = "Editar";
-            $data['usuario'] = $this->request->getPost('usuario');
-            $data['rolActual'] = $usuario->obtenerRoleDeUsuario($id); //rol actual
+    }
 
-            $roles = $usuario->obtenerRoles();
-            $posicionRolActual = array_search($data['rolActual'], $roles);
-            unset($roles[$posicionRolActual]);
-            $data['roles'] = $roles; // resto de roles
+    public function editarUsuario($id) {
+        $usuario = new ModelUsuarios();
+        $data['titulo'] = "Editar";
+        $data['usuario'] = $this->request->getPost('usuario');
+        $data['rolActual'] = $usuario->obtenerRoleDeUsuario($id); //rol actual
+        $data['validacion'] = null;
 
-            if ($this->request->getMethod() === 'post' && $this->validate([
-                    'nombre' => 'required|min_length[3]|max_length[255]',
-                    'apellido'  => 'required|min_length[3]|max_length[255]',
-                    'usuario'  => 'required|min_length[3]|max_length[255]',
-                    'email'  => 'required',
-                    'rol'  => 'required'
-                ])) {
+        $roles = $usuario->obtenerRoles();
+        $posicionRolActual = array_search($data['rolActual'], $roles);
+        unset($roles[$posicionRolActual]);
+        $data['roles'] = $roles; // resto de roles
+
+        if ($this->request->getMethod() === 'post') {
+            if ($this->validate($this->validacion)) {
                 $usuario->save([
                     'nombre' => $this->request->getPost('nombre'),
                     'apellido'  => $this->request->getPost('apellido'),
@@ -107,15 +150,28 @@ class Usuarios extends Controller
                 echo view('templates/container');
                 echo view('Usuarios/exito', $data);
                 echo view('templates/footer');
-
-            } else {
-                $data['usuario'] = $usuario->obtenerUsuarioPorId($id);
+            }
+            else {
+                $user['usuario'] = $this->request->getPost('usuario');
+                $user['nombre'] = $this->request->getPost('nombre');
+                $user['apellido'] = $this->request->getPost('apellido');
+                $user['email'] = $this->request->getPost('email');
+                $user['id'] = $id;
+                $data['usuario'] = $user;
+                $data['validacion'] = $this->validator;
 
                 echo view('templates/header', $data);
                 echo view('templates/container');
                 echo view('Usuarios/editar', $data);
                 echo view('templates/footer');
             }
+        } else {
+            $data['usuario'] = $usuario->obtenerUsuarioPorId($id);
+
+            echo view('templates/header', $data);
+            echo view('templates/container');
+            echo view('Usuarios/editar', $data);
+            echo view('templates/footer');
         }
     }
 
@@ -123,8 +179,6 @@ class Usuarios extends Controller
     {
         $usuario = new ModelUsuarios();
         $exito = $usuario->delete($id);
-
-        $data['titulo'] = 'Eliminar';
 
         if($exito) {
             header('Location: '.base_url().'/usuarios');
